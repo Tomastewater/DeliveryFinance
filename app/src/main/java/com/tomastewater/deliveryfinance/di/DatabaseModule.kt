@@ -20,10 +20,11 @@ object DatabaseModule {
     @Singleton
     fun provideDatabase(app: Application): DeliveryFinanceDatabase {
         return Room.databaseBuilder(
-            app,
-            DeliveryFinanceDatabase::class.java,
-            "delivery_finance_db"
-        ).build()
+                app,
+                DeliveryFinanceDatabase::class.java,
+                "delivery_finance_db"
+            ).fallbackToDestructiveMigration(false)
+            .build()
     }
 
     @Provides
