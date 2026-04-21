@@ -11,5 +11,7 @@ data class DashboardUiState(
     val dailyExpenses: Double = 0.0,
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
+    val weeksToGoal: Int? = null,
+    val savingsCapacity: Double = 0.0
 )
 
