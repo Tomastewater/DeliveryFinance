@@ -1,5 +1,6 @@
 package com.tomastewater.deliveryfinance.presentation.dashboard
 
+import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -25,6 +26,7 @@ fun DashboardScreen(
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val balanceColor = if (state.totalBalance < 0) Color.Red else MaterialTheme.colorScheme.onPrimary
 
     Scaffold(
         topBar = {
@@ -63,6 +65,25 @@ fun DashboardScreen(
             // 2. Espacio para la Planta (El Alma)
             item {
                 PlantStatusSection(health = 0.8f)
+            }
+
+            item {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally // Centrado para dar respiro visual
+                ) {
+                    Text(
+                        text = "Saldo Disponible",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "$${state.totalBalance.toInt()}", // Mostrarlo sin decimales para que sea más limpio
+                        color = balanceColor,
+                        style = MaterialTheme.typography.headlineLarge
+                    )
+                }
             }
 
             // 3. Título de historial

@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tomastewater.deliveryfinance.domain.model.Transaction
 import com.tomastewater.deliveryfinance.domain.model.TransactionType
+import com.tomastewater.deliveryfinance.domain.usecase.balance.GetAvailableBalanceUseCase
 import com.tomastewater.deliveryfinance.domain.usecase.transaction.AddTransactionUseCase
 import com.tomastewater.deliveryfinance.domain.usecase.transaction.GetTransactionsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -19,7 +20,8 @@ import javax.inject.Inject
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
     private val getTransactionsUseCase: GetTransactionsUseCase,
-    private val addTransactionUseCase: AddTransactionUseCase
+    private val addTransactionUseCase: AddTransactionUseCase,
+    private val getAvailableBalanceUseCase: GetAvailableBalanceUseCase
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(DashboardUiState())
@@ -46,6 +48,17 @@ class DashboardViewModel @Inject constructor(
                 }
             }
             .launchIn(viewModelScope)
+    }
+
+    private fun loadDashboardData() {
+        // Observamos el saldo disponible calculado
+        getAvailableBalanceUseCase()
+            .onEach { balance ->
+                _state.update { it.copy(totalBalance = balance) }
+            }
+            .launchIn(viewModelScope)
+
+        // ... (carga de transacciones)
     }
 
     // Función rápida para agregar un ingreso o gasto desde el Dashboard
