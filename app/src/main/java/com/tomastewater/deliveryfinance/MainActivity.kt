@@ -13,6 +13,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import com.tomastewater.deliveryfinance.core.navigation.DeliveryFinanceNavigation
 import com.tomastewater.deliveryfinance.presentation.dashboard.DashboardScreen
 import com.tomastewater.deliveryfinance.ui.theme.DeliveryFinanceTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -25,7 +26,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             DeliveryFinanceTheme {
                 Surface(color = MaterialTheme.colorScheme.background) {
-                    DashboardScreen()
+                    DeliveryFinanceNavigation()
                 }
             }
         }

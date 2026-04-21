@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.tomastewater.deliveryfinance.domain.model.Transaction
 import com.tomastewater.deliveryfinance.domain.model.TransactionType
 import com.tomastewater.deliveryfinance.domain.usecase.balance.GetAvailableBalanceUseCase
+import com.tomastewater.deliveryfinance.domain.usecase.goal.GetActiveGoalUseCase
 import com.tomastewater.deliveryfinance.domain.usecase.transaction.AddTransactionUseCase
 import com.tomastewater.deliveryfinance.domain.usecase.transaction.GetTransactionsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -21,7 +22,8 @@ import javax.inject.Inject
 class DashboardViewModel @Inject constructor(
     private val getTransactionsUseCase: GetTransactionsUseCase,
     private val addTransactionUseCase: AddTransactionUseCase,
-    private val getAvailableBalanceUseCase: GetAvailableBalanceUseCase
+    private val getAvailableBalanceUseCase: GetAvailableBalanceUseCase,
+    private val getActiveGoalUseCase: GetActiveGoalUseCase
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(DashboardUiState())
@@ -29,6 +31,7 @@ class DashboardViewModel @Inject constructor(
 
     init {
         loadTransactions()
+        loadDashboardData()
     }
 
     private fun loadTransactions() {
@@ -51,14 +54,22 @@ class DashboardViewModel @Inject constructor(
     }
 
     private fun loadDashboardData() {
-        // Observamos el saldo disponible calculado
+        // 1. Escuchar Saldo
         getAvailableBalanceUseCase()
-            .onEach { balance ->
-                _state.update { it.copy(totalBalance = balance) }
-            }
+            .onEach { balance -> _state.update { it.copy(totalBalance = balance) } }
             .launchIn(viewModelScope)
 
-        // ... (carga de transacciones)
+        // 2. Escuchar Transacciones
+        getTransactionsUseCase()
+            .onEach { list -> _state.update { it.copy(transactions = list) } }
+            .launchIn(viewModelScope)
+
+        // 3. Escuchar Meta Activa
+        getActiveGoalUseCase()
+            .onEach { goal ->
+                _state.update { it.copy(activeGoal = goal) }
+            }
+            .launchIn(viewModelScope)
     }
 
     // Función rápida para agregar un ingreso o gasto desde el Dashboard
