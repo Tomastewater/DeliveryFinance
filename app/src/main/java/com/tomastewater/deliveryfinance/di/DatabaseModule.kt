@@ -4,10 +4,13 @@ import android.app.Application
 import androidx.room.Room
 import com.tomastewater.deliveryfinance.data.local.DeliveryFinanceDatabase
 import com.tomastewater.deliveryfinance.data.local.dao.FixedExpenseDao
+import com.tomastewater.deliveryfinance.data.local.dao.GoalDao
 import com.tomastewater.deliveryfinance.data.local.dao.TransactionDao
 import com.tomastewater.deliveryfinance.data.repository.FixedExpenseRepositoryImpl
+import com.tomastewater.deliveryfinance.data.repository.GoalRepositoryImpl
 import com.tomastewater.deliveryfinance.data.repository.TransactionRepositoryImpl
 import com.tomastewater.deliveryfinance.domain.repository.FixedExpenseRepository
+import com.tomastewater.deliveryfinance.domain.repository.GoalRepository
 import com.tomastewater.deliveryfinance.domain.repository.TransactionRepository
 import dagger.Module
 import dagger.Provides
@@ -26,7 +29,7 @@ object DatabaseModule {
                 app,
                 DeliveryFinanceDatabase::class.java,
                 "delivery_finance_db"
-            ).fallbackToDestructiveMigration(false)
+            ).fallbackToDestructiveMigration(true) // Por ahora hay que dejarla en True
             .build()
     }
 
@@ -52,6 +55,18 @@ object DatabaseModule {
     @Singleton
     fun provideFixedExpenseRepository(dao: FixedExpenseDao): FixedExpenseRepository {
         return FixedExpenseRepositoryImpl(dao)
+    }
+
+    @Provides
+    @Singleton
+    fun provideGoalDao(db: DeliveryFinanceDatabase): GoalDao {
+        return db.goalDao
+    }
+
+    @Provides
+    @Singleton
+    fun provideGoalRepository(dao: GoalDao): GoalRepository {
+        return GoalRepositoryImpl(dao)
     }
 
 }
