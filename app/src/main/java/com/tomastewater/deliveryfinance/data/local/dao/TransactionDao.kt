@@ -5,6 +5,7 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Update
 import com.tomastewater.deliveryfinance.data.local.entity.TransactionEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -16,6 +17,9 @@ interface TransactionDao {
 
     @Delete
     suspend fun deleteTransaction(transaction: TransactionEntity)
+
+    @Update
+    suspend fun updateTransaction(transaction: TransactionEntity)
 
     // Flow emitirá una nueva lista automáticamente cada vez que haya cambios en la tabla
     @Query("SELECT * FROM transactions ORDER BY timestamp DESC")

@@ -33,6 +33,7 @@ import com.tomastewater.deliveryfinance.presentation.dashboard.components.Compar
 @Composable
 fun DashboardScreen(
     onNavigateToAddGoal: () -> Unit,
+    onNavigateToHistory: () -> Unit,
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -121,12 +122,20 @@ fun DashboardScreen(
 
             // 4. Título de historial
             item {
-                Text(
-                    text = "Actividad reciente",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Actividad reciente",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    TextButton(onClick = onNavigateToHistory) {
+                        Text("Ver todo", color = MaterialTheme.colorScheme.primary)
+                    }
+                }
             }
 
             // 5. Lista de Transacciones

@@ -25,6 +25,10 @@ class TransactionRepositoryImpl(
     override suspend fun deleteTransaction(transaction: Transaction) {
         dao.deleteTransaction(transaction.toEntity())
     }
+
+    override suspend fun updateTransaction(transaction: Transaction) {
+        dao.updateTransaction(transaction.toEntity())
+    }
 }
 
 // --- Funciones de Mapeo (Mappers) ---

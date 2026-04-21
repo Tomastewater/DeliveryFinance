@@ -6,6 +6,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.tomastewater.deliveryfinance.presentation.dashboard.DashboardScreen
 import com.tomastewater.deliveryfinance.presentation.goal.AddGoalScreen
+import com.tomastewater.deliveryfinance.presentation.history.HistoryScreen
 
 @Composable
 fun DeliveryFinanceNavigation() {
@@ -17,18 +18,17 @@ fun DeliveryFinanceNavigation() {
     ) {
         composable(route = Screen.Dashboard.route) {
             DashboardScreen(
-                onNavigateToAddGoal = {
-                    navController.navigate(Screen.AddGoal.route)
-                }
+                onNavigateToAddGoal = { navController.navigate(Screen.AddGoal.route) },
+                onNavigateToHistory = { navController.navigate(Screen.History.route) } // Nueva acción
             )
         }
 
         composable(route = Screen.AddGoal.route) {
-            AddGoalScreen(
-                onNavigateBack = {
-                    navController.popBackStack()
-                }
-            )
+            AddGoalScreen(onNavigateBack = { navController.popBackStack() })
+        }
+
+        composable(route = Screen.History.route) {
+            HistoryScreen(onNavigateBack = { navController.popBackStack() })
         }
     }
 }
