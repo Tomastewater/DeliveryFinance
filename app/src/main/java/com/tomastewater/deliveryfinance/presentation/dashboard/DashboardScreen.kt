@@ -16,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -27,6 +28,18 @@ import com.tomastewater.deliveryfinance.presentation.dashboard.components.GoalCa
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import com.tomastewater.deliveryfinance.presentation.dashboard.components.ComparisonChart
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Star
+import com.tomastewater.deliveryfinance.presentation.dashboard.components.ExpandableFAB
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -34,6 +47,8 @@ import com.tomastewater.deliveryfinance.presentation.dashboard.components.Compar
 fun DashboardScreen(
     onNavigateToAddGoal: () -> Unit,
     onNavigateToHistory: () -> Unit,
+    onNavigateToGoalHistory: () -> Unit,
+    onNavigateToAddTransaction: (String) -> Unit,
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -49,15 +64,10 @@ fun DashboardScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = {
-                    // Simularemos una carga rápida para probar
-                    viewModel.onAddQuickTransaction(5000.0, TransactionType.INCOME, "Delivery")
-                },
-                containerColor = MaterialTheme.colorScheme.primary
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Agregar", tint = MaterialTheme.colorScheme.onPrimary)
-            }
+            ExpandableFAB(
+                onAddIncome = { onNavigateToAddTransaction("INCOME") },
+                onAddExpense = { onNavigateToAddTransaction("EXPENSE") }
+            )
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
@@ -72,7 +82,9 @@ fun DashboardScreen(
             item {
                 GoalProgressBar(
                     goal = state.activeGoal,
-                    onNavigateToAddGoal = onNavigateToAddGoal
+                    onNavigateToAddGoal = onNavigateToAddGoal,
+                    onCompleteGoal = { viewModel.onCompleteGoal(it) },
+                    onDeleteGoal = { viewModel.onDeleteGoal(it) }
                 )
             }
 
@@ -122,62 +134,159 @@ fun DashboardScreen(
 
             // 4. Título de historial
             item {
+                Text(
+                    text = "Explorar",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
+                )
+            }
+
+            item {
+                // Fila 1 de tarjetas (2 columnas)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Text(
-                        text = "Actividad reciente",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onBackground
+                    DashboardActionCard(
+                        title = "Movimientos",
+                        subtitle = "Ingresos y Egresos",
+                        icon = Icons.Default.List,
+                        modifier = Modifier.weight(1f),
+                        onClick = onNavigateToHistory
                     )
-                    TextButton(onClick = onNavigateToHistory) {
-                        Text("Ver todo", color = MaterialTheme.colorScheme.primary)
-                    }
+
+                    DashboardActionCard(
+                        title = "Mis Logros",
+                        subtitle = "Metas cumplidas",
+                        icon = Icons.Default.Star,
+                        modifier = Modifier.weight(1f),
+                        onClick = onNavigateToGoalHistory // <-- Agregaremos esta ruta ahora
+                    )
                 }
             }
 
-            // 5. Lista de Transacciones
-            items(state.transactions) { transaction ->
-                TransactionItem(transaction)
+            item {
+                // Fila 2 de tarjetas (Espacio para el futuro)
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    DashboardActionCard(
+                        title = "Estadísticas",
+                        subtitle = "Próximamente",
+                        icon = Icons.Default.Menu, // Cambia el icono luego
+                        modifier = Modifier.weight(1f),
+                        onClick = { /* TODO en el futuro */ }
+                    )
+
+                    // Tarjeta vacía invisible para mantener el ancho de la columna izquierda si solo hay 3 tarjetas
+                    Spacer(modifier = Modifier.weight(1f))
+                }
             }
 
-            // Espacio final
             item { Spacer(modifier = Modifier.height(80.dp)) }
         }
     }
 }
 
 @Composable
-fun GoalProgressBar(goal: Goal?, onNavigateToAddGoal: () -> Unit) {
+fun GoalProgressBar(
+    goal: Goal?,
+    onNavigateToAddGoal: () -> Unit,
+    onCompleteGoal: (Goal) -> Unit,
+    onDeleteGoal: (Goal) -> Unit
+) {
     if (goal == null) {
-        // ... (El Card de estado vacío se queda igual)
+        // ESTADO VACÍO: Dibuja la tarjeta para invitar a crear una meta
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(100.dp)
+                .clickable { onNavigateToAddGoal() },
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.3f)
+            )
+        ) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "+ Toca aquí para definir una Meta",
+                    color = MaterialTheme.colorScheme.onBackground,
+                    style = MaterialTheme.typography.labelLarge
+                )
+            }
+        }
     } else {
-        // Animación suave
+        // ESTADO ACTIVO: Dibuja la barra de progreso
+        var expanded by remember { mutableStateOf(false) }
         val animatedProgress by animateFloatAsState(
             targetValue = goal.progressPercentage,
             animationSpec = tween(durationMillis = 1000),
             label = "progress"
         )
 
-        // --- NUEVO CONTENEDOR MODERNIZADO ---
+        // --- CONTENEDOR MODERNIZADO ---
         Card(
             modifier = Modifier.fillMaxWidth().clickable { onNavigateToAddGoal() },
             shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.3f)
-            )
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.3f))
         ) {
-            Column(
-                modifier = Modifier.fillMaxWidth().padding(24.dp)
+            Column(modifier = Modifier.fillMaxWidth().padding(24.dp)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(text = goal.title, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
-                    Text(text = "${(animatedProgress * 100).toInt()}%", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(text = "${(animatedProgress * 100).toInt()}%", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+
+                        // Botón de 3 puntitos
+                        Box {
+                            IconButton(onClick = { expanded = true }) {
+                                Icon(
+                                    imageVector = Icons.Default.MoreVert,
+                                    contentDescription = "Opciones de meta",
+                                    tint = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+
+                            // Menú desplegable
+                            DropdownMenu(
+                                expanded = expanded,
+                                onDismissRequest = { expanded = false },
+                                containerColor = MaterialTheme.colorScheme.surface
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Completar y Guardar") },
+                                    onClick = {
+                                        expanded = false
+                                        onCompleteGoal(goal)
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Editar Meta") },
+                                    onClick = {
+                                        expanded = false
+                                        onNavigateToAddGoal() // Reutilizamos la pantalla de crear para editar
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Eliminar", color = MaterialTheme.colorScheme.error) },
+                                    onClick = {
+                                        expanded = false
+                                        onDeleteGoal(goal)
+                                    }
+                                )
+                            }
+                        }
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -186,9 +295,9 @@ fun GoalProgressBar(goal: Goal?, onNavigateToAddGoal: () -> Unit) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(16.dp) // Un poco más delgada para verse más elegante dentro de la tarjeta
+                        .height(16.dp)
                         .clip(RoundedCornerShape(8.dp))
-                        .background(MaterialTheme.colorScheme.background.copy(alpha = 0.5f)) // Fondo interior más oscuro
+                        .background(MaterialTheme.colorScheme.background.copy(alpha = 0.5f))
                 ) {
                     // Barra de progreso (relleno)
                     Box(
@@ -244,9 +353,9 @@ fun TransactionItem(transaction: Transaction) {
 }
 
 @Composable
-fun LegendItem(label: String, color: androidx.compose.ui.graphics.Color) {
+fun LegendItem(label: String, color: Color) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(modifier = Modifier.size(12.dp).background(color, shape = androidx.compose.foundation.shape.CircleShape))
+        Box(modifier = Modifier.size(12.dp).background(color, shape = CircleShape))
         Spacer(modifier = Modifier.width(8.dp))
         Text(text = label, style = MaterialTheme.typography.labelSmall)
     }
@@ -280,6 +389,54 @@ fun BalanceCard(balance: Double) {
                 text = "$${balance.toInt()}",
                 color = balanceColor,
                 style = MaterialTheme.typography.headlineLarge
+            )
+        }
+    }
+}
+
+@Composable
+fun DashboardActionCard(
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = modifier
+            .height(100.dp)
+            .clickable { onClick() },
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.4f)
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.Start
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onBackground
             )
         }
     }

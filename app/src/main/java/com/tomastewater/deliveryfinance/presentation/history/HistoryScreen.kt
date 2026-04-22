@@ -22,6 +22,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tomastewater.deliveryfinance.core.designsystem.ConfirmDialog
 import com.tomastewater.deliveryfinance.domain.model.Transaction
 import com.tomastewater.deliveryfinance.domain.model.TransactionType
+import com.tomastewater.deliveryfinance.presentation.dashboard.components.EditTransactionDialog
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,6 +39,15 @@ fun HistoryScreen(
             message = "¿Estás seguro de que deseas eliminar este registro de ${transaction.category}?",
             onConfirm = { viewModel.onConfirmDelete() },
             onDismiss = { viewModel.onDismissDelete() }
+        )
+    }
+
+    // Diálogo para Editar
+    state.transactionToEdit?.let { transaction ->
+        EditTransactionDialog(
+            transaction = transaction,
+            onConfirm = { updatedTx -> viewModel.onUpdateTransaction(updatedTx) },
+            onDismiss = { viewModel.onDismissEdit() }
         )
     }
 
@@ -154,3 +164,4 @@ fun HistoryItem(
         }
     }
 }
+

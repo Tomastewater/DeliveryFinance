@@ -3,6 +3,7 @@ package com.tomastewater.deliveryfinance.presentation.history
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tomastewater.deliveryfinance.domain.model.Transaction
+import com.tomastewater.deliveryfinance.domain.usecase.goal.GetCompletedGoalsUseCase
 import com.tomastewater.deliveryfinance.domain.usecase.transaction.DeleteTransactionUseCase
 import com.tomastewater.deliveryfinance.domain.usecase.transaction.GetTransactionsUseCase
 import com.tomastewater.deliveryfinance.domain.usecase.transaction.UpdateTransactionUseCase
@@ -21,7 +22,7 @@ import javax.inject.Inject
 class HistoryViewModel @Inject constructor(
     private val getTransactionsUseCase: GetTransactionsUseCase,
     private val deleteTransactionUseCase: DeleteTransactionUseCase,
-    private val updateTransactionUseCase: UpdateTransactionUseCase
+    private val updateTransactionUseCase: UpdateTransactionUseCase,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(HistoryUiState())
@@ -82,10 +83,17 @@ class HistoryViewModel @Inject constructor(
         _state.update { it.copy(transactionToEdit = transaction) }
     }
 
+    fun onDismissEdit() {
+        _state.update { it.copy(transactionToEdit = null) }
+    }
+
     fun onUpdateTransaction(updatedTransaction: Transaction) {
         viewModelScope.launch {
             updateTransactionUseCase(updatedTransaction)
             _state.update { it.copy(transactionToEdit = null) }
         }
     }
+
+
+
 }
