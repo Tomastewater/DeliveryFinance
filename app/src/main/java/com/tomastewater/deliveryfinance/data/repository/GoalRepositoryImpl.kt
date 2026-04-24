@@ -11,9 +11,9 @@ class GoalRepositoryImpl(
     private val dao: GoalDao
 ) : GoalRepository {
 
-    override fun getActiveGoal(): Flow<Goal?> {
-        return dao.getActiveGoal().map { entity ->
-            entity?.toDomain()
+    override fun getActiveGoals(): Flow<List<Goal>> {
+        return dao.getActiveGoals().map { entities ->
+            entities.map { it.toDomain() }
         }
     }
 

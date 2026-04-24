@@ -5,10 +5,10 @@ import com.tomastewater.deliveryfinance.domain.repository.GoalRepository
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 
-class GetActiveGoalUseCase @Inject constructor(
+class GetActiveGoalsUseCase @Inject constructor(
     private val repository: GoalRepository
 ) {
-    operator fun invoke(): Flow<Goal?> {
-        return repository.getActiveGoal()
+    operator fun invoke(): Flow<List<Goal>> {
+        return repository.getActiveGoals()
     }
 }

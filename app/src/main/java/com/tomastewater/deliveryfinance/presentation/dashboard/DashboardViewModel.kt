@@ -9,7 +9,7 @@ import com.tomastewater.deliveryfinance.domain.repository.FixedExpenseRepository
 import com.tomastewater.deliveryfinance.domain.usecase.balance.GetAvailableBalanceUseCase
 import com.tomastewater.deliveryfinance.domain.usecase.goal.CalculateGoalTimeUseCase
 import com.tomastewater.deliveryfinance.domain.usecase.goal.CompleteGoalUseCase
-import com.tomastewater.deliveryfinance.domain.usecase.goal.GetActiveGoalUseCase
+import com.tomastewater.deliveryfinance.domain.usecase.goal.GetActiveGoalsUseCase
 import com.tomastewater.deliveryfinance.domain.usecase.goal.ProjectionResult
 import com.tomastewater.deliveryfinance.domain.usecase.transaction.AddTransactionUseCase
 import com.tomastewater.deliveryfinance.domain.usecase.transaction.GetTransactionsUseCase
@@ -29,7 +29,7 @@ class DashboardViewModel @Inject constructor(
     private val getTransactionsUseCase: GetTransactionsUseCase,
     private val addTransactionUseCase: AddTransactionUseCase,
     private val getAvailableBalanceUseCase: GetAvailableBalanceUseCase,
-    private val getActiveGoalUseCase: GetActiveGoalUseCase,
+    private val getActiveGoalsUseCase: GetActiveGoalsUseCase,
     private val calculateGoalTimeUseCase: CalculateGoalTimeUseCase,
     private val fixedExpenseRepository: FixedExpenseRepository,
     private val completeGoalUseCase: CompleteGoalUseCase,
@@ -51,47 +51,64 @@ class DashboardViewModel @Inject constructor(
         // 2. Escuchar Transacciones (Historial y sumas diarias)
         getTransactionsUseCase()
             .onEach { list ->
-                _state.update { it.copy(
-                    transactions = list,
-                    dailyIncome = calculateDaily(list, TransactionType.INCOME),
-                    dailyExpenses = calculateDaily(list, TransactionType.EXPENSE),
-                    isLoading = false
-                ) }
+                _state.update {
+                    it.copy(
+                        transactions = list,
+                        dailyIncome = calculateDaily(list, TransactionType.INCOME),
+                        dailyExpenses = calculateDaily(list, TransactionType.EXPENSE),
+                        isLoading = false
+                    )
+                }
             }
             .launchIn(viewModelScope)
 
         // 3. Escuchar la Meta Activa (ESTO GARANTIZA QUE EL BOTÓN '+' APAREZCA)
-        getActiveGoalUseCase()
-            .onEach { goal ->
-                _state.update { it.copy(activeGoal = goal) }
+        getActiveGoalsUseCase()
+            .onEach { goals ->
+                _state.update { it.copy(activeGoals = goals) }
             }
             .launchIn(viewModelScope)
 
         // 4. El Algoritmo Predictivo (Matemática pura)
         combine(
-            getActiveGoalUseCase(),
+            getActiveGoalsUseCase(),
             getTransactionsUseCase(),
             fixedExpenseRepository.getFixedExpenses()
-        ) { goal, txs, fixed ->
-            if (goal != null) {
+        ) { goals, txs, fixed ->
+            // Si no hay metas, limpiamos las predicciones
+            if (goals.isEmpty()) {
+                _state.update { it.copy(goalPredictions = emptyMap(), savingsCapacity = 0.0) }
+                return@combine
+            }
+
+            // Si hay metas, calculamos cuánto falta para CADA UNA
+            val predictionsMap = mutableMapOf<Long, Int>()
+            var generalSavingsCapacity = 0.0
+
+            goals.forEach { goal ->
                 val result = calculateGoalTimeUseCase(goal, txs, fixed)
-                _state.update { currentState ->
-                    when (result) {
-                        is ProjectionResult.Success -> currentState.copy(
-                            weeksToGoal = result.weeks,
-                            savingsCapacity = result.savingsCapacity
-                        )
-                        is ProjectionResult.Negative -> currentState.copy(
-                            weeksToGoal = -1,
-                            savingsCapacity = result.deficit
-                        )
+                when (result) {
+                    is ProjectionResult.Success -> {
+                        predictionsMap[goal.id] = result.weeks
+                        generalSavingsCapacity =
+                            result.savingsCapacity // Capacidad de ahorro general
+                    }
+
+                    is ProjectionResult.Negative -> {
+                        predictionsMap[goal.id] = -1 // Código para "Ritmo insuficiente"
+                        generalSavingsCapacity = result.deficit
                     }
                 }
-            } else {
-                // Si no hay meta, limpiamos la proyección matemática
-                _state.update { it.copy(weeksToGoal = null, savingsCapacity = 0.0) }
+            }
+
+            _state.update { currentState ->
+                currentState.copy(
+                    goalPredictions = predictionsMap,
+                    savingsCapacity = generalSavingsCapacity
+                )
             }
         }.launchIn(viewModelScope)
+
     }
 
     private fun calculateDaily(list: List<Transaction>, type: TransactionType): Double {

@@ -4,7 +4,7 @@ import com.tomastewater.deliveryfinance.domain.model.Goal
 import kotlinx.coroutines.flow.Flow
 
 interface GoalRepository {
-    fun getActiveGoal(): Flow<Goal?>
+    fun getActiveGoals(): Flow<List<Goal>>
     fun getCompletedGoals(): Flow<List<Goal>>
     suspend fun saveGoal(goal: Goal)
     suspend fun deleteGoal(goal: Goal)

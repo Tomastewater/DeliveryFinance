@@ -2,6 +2,18 @@ package com.tomastewater.deliveryfinance.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
+// Paleta azul financiero
+
+val BackgroundGray = Color(0xFFF3F4F6)
+val PrimaryBlue = Color(0xFF1E3A8A)
+val CardSurface = Color(0xFFFFFFFF)
+val TextDark = Color(0xFF1A1B21)
+val TextMuted = Color(0xFF757682)
+val IncomeGreen = Color(0xFF006C49)
+val ExpenseRed = Color(0xFFBA1A1A)
+val WarningBackground = Color(0xFFFFDAD6)
+val WarningText = Color(0xFF93000A)
+
 // Paleta "Deep Zen" de Tomás
 val DarkBackground = Color(0xFF171F22)
 val MutedOlive = Color(0xFF666B64)

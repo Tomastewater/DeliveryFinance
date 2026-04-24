@@ -39,8 +39,20 @@ import androidx.compose.runtime.setValue
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
+import com.tomastewater.deliveryfinance.presentation.dashboard.components.ActiveGoalItem
+import com.tomastewater.deliveryfinance.presentation.dashboard.components.DeliveryBottomBar
 import com.tomastewater.deliveryfinance.presentation.dashboard.components.ExpandableFAB
-
+import com.tomastewater.deliveryfinance.ui.theme.BackgroundGray
+import com.tomastewater.deliveryfinance.ui.theme.CardSurface
+import com.tomastewater.deliveryfinance.ui.theme.ExpenseRed
+import com.tomastewater.deliveryfinance.ui.theme.IncomeGreen
+import com.tomastewater.deliveryfinance.ui.theme.PrimaryBlue
+import com.tomastewater.deliveryfinance.ui.theme.TextDark
+import com.tomastewater.deliveryfinance.ui.theme.TextMuted
+import com.tomastewater.deliveryfinance.ui.theme.WarningBackground
+import com.tomastewater.deliveryfinance.ui.theme.WarningText
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,15 +64,19 @@ fun DashboardScreen(
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val balanceColor = if (state.totalBalance < 0) Color.Red else MaterialTheme.colorScheme.onPrimary
 
     Scaffold(
+        containerColor = BackgroundGray, // El fondo gris claro de tu prototipo
         topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text("DELIVERY FINANCE", style = MaterialTheme.typography.labelLarge) },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
-                )
+            TopAppBar(
+                title = { Text("DeliveryFinance", fontWeight = FontWeight.Bold, color = PrimaryBlue) },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = BackgroundGray)
+            )
+        },
+        bottomBar = {
+            DeliveryBottomBar(
+                currentRoute = "dashboard_route",
+                onNavigate = { /* Aquí conectaremos tu NavController luego */ }
             )
         },
         floatingActionButton = {
@@ -68,123 +84,128 @@ fun DashboardScreen(
                 onAddIncome = { onNavigateToAddTransaction("INCOME") },
                 onAddExpense = { onNavigateToAddTransaction("EXPENSE") }
             )
-        },
-        containerColor = MaterialTheme.colorScheme.background
+        }
     ) { paddingValues ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(horizontal = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp) // Esto da el margen perfecto entre tarjetas
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // 1. Tarjeta de Meta Diaria
+
+            // 1. HEADER (Semana actual)
             item {
-                GoalProgressBar(
-                    goal = state.activeGoal,
-                    onNavigateToAddGoal = onNavigateToAddGoal,
-                    onCompleteGoal = { viewModel.onCompleteGoal(it) },
-                    onDeleteGoal = { viewModel.onDeleteGoal(it) }
-                )
+                Column(modifier = Modifier.padding(top = 8.dp)) {
+                    Text("Tu semana actual", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = PrimaryBlue)
+                    Text("Resumen financiero", color = TextMuted)
+                }
             }
 
-            // 2. Tarjeta del Saldo
-            item {
-                BalanceCard(balance = state.totalBalance)
-            }
-
-            // 3. Tarjeta del Gráfico Comparativo
+            // 2. TARJETA PRINCIPAL (Saldo y Egresos/Ingresos)
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.3f)
-                    )
+                    colors = CardDefaults.cardColors(containerColor = CardSurface),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth().padding(24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = "Balance Semanal",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.align(Alignment.Start)
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
+                    Column(modifier = Modifier.padding(20.dp)) {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Column {
+                                Text("Saldo disponible", color = TextMuted, fontWeight = FontWeight.SemiBold)
+                                Text(
+                                    text = "$${state.totalBalance.toInt()}",
+                                    fontSize = 36.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = if (state.totalBalance < 0) ExpenseRed else TextDark
+                                )
+                            }
+                            // Píldora de advertencia si es negativo
+                            if (state.totalBalance < 0) {
+                                Box(
+                                    modifier = Modifier.background(WarningBackground, RoundedCornerShape(16.dp)).padding(horizontal = 8.dp, vertical = 4.dp)
+                                ) {
+                                    Text("Atención: Negativo", color = WarningText, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
 
-                        ComparisonChart(
-                            income = state.dailyIncome,
-                            expenses = state.dailyExpenses,
-                            modifier = Modifier.padding(16.dp)
-                        )
+                        Divider(modifier = Modifier.padding(vertical = 16.dp), color = BackgroundGray)
 
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceEvenly
-                        ) {
-                            LegendItem(label = "Ingresos", color = MaterialTheme.colorScheme.primary)
-                            LegendItem(label = "Gastos", color = MaterialTheme.colorScheme.secondary)
+                        // Ingresos y Egresos en la misma tarjeta
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("Ingresos", color = TextMuted, fontSize = 12.sp)
+                                Text("$${state.dailyIncome.toInt()}", color = IncomeGreen, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                            }
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("Egresos", color = TextMuted, fontSize = 12.sp)
+                                Text("$${state.dailyExpenses.toInt()}", color = ExpenseRed, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                            }
                         }
                     }
                 }
             }
 
-            // 4. Título de historial
+            // 3. CUADRÍCULA BENTO (Metas y Distribución)
             item {
-                Text(
-                    text = "Explorar",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
-                )
-            }
-
-            item {
-                // Fila 1 de tarjetas (2 columnas)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    DashboardActionCard(
-                        title = "Movimientos",
-                        subtitle = "Ingresos y Egresos",
-                        icon = Icons.Default.List,
-                        modifier = Modifier.weight(1f),
-                        onClick = onNavigateToHistory
-                    )
+                    // Tarjeta Izquierda (Distribución/Estadísticas futuras)
+                    Card(
+                        modifier = Modifier.weight(1f).height(180.dp),
+                        colors = CardDefaults.cardColors(containerColor = CardSurface),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text("Distribución", color = PrimaryBlue, fontWeight = FontWeight.Bold)
+                            // Aquí irá tu Donut Chart en el futuro
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                Text("Gráfico", color = TextMuted)
+                            }
+                        }
+                    }
 
-                    DashboardActionCard(
-                        title = "Mis Logros",
-                        subtitle = "Metas cumplidas",
-                        icon = Icons.Default.Star,
-                        modifier = Modifier.weight(1f),
-                        onClick = onNavigateToGoalHistory // <-- Agregaremos esta ruta ahora
-                    )
+                    // Tarjeta Derecha (Meta Activa)
+                    Card(
+                        modifier = Modifier.weight(1f).height(180.dp).clickable { onNavigateToAddGoal() },
+                        colors = CardDefaults.cardColors(containerColor = CardSurface),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp).fillMaxSize(), verticalArrangement = Arrangement.SpaceBetween) {
+                            val mainGoal = state.activeGoals.firstOrNull()
+
+                            if (mainGoal != null) {
+                                Column {
+                                    Text("Meta activa", color = PrimaryBlue, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                    Text(mainGoal.title, fontWeight = FontWeight.Bold, fontSize = 16.sp, maxLines = 2)
+                                }
+                                Column {
+                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                        Text("$${mainGoal.savedAmount.toInt()}", color = IncomeGreen, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                        Text("$${mainGoal.targetAmount.toInt()}", color = TextMuted, fontSize = 12.sp)
+                                    }
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    LinearProgressIndicator(
+                                        progress = { mainGoal.progressPercentage },
+                                        modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)),
+                                        color = IncomeGreen,
+                                        trackColor = BackgroundGray
+                                    )
+                                }
+                            } else {
+                                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                    Text("+ Crear Meta", color = TextMuted, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
-            item {
-                // Fila 2 de tarjetas (Espacio para el futuro)
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    DashboardActionCard(
-                        title = "Estadísticas",
-                        subtitle = "Próximamente",
-                        icon = Icons.Default.Menu, // Cambia el icono luego
-                        modifier = Modifier.weight(1f),
-                        onClick = { /* TODO en el futuro */ }
-                    )
-
-                    // Tarjeta vacía invisible para mantener el ancho de la columna izquierda si solo hay 3 tarjetas
-                    Spacer(modifier = Modifier.weight(1f))
-                }
-            }
-
+            // Espacio al final para que el FAB no tape contenido
             item { Spacer(modifier = Modifier.height(80.dp)) }
         }
     }

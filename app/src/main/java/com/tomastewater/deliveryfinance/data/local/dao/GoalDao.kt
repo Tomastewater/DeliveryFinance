@@ -14,8 +14,8 @@ interface GoalDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertGoal(goal: GoalEntity)
 
-    @Query("SELECT * FROM goals WHERE isCompleted = 0 LIMIT 1")
-    fun getActiveGoal(): Flow<GoalEntity?>
+    @Query("SELECT * FROM goals WHERE isCompleted = 0 ORDER BY id DESC")
+    fun getActiveGoals(): Flow<List<GoalEntity>>
 
     @Query("SELECT * FROM goals WHERE isCompleted = 1 ORDER BY createdAt DESC")
     fun getCompletedGoals(): Flow<List<GoalEntity>>

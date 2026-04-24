@@ -60,6 +60,8 @@ dependencies {
     // --- Room ---
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
+    implementation(libs.androidx.compose.runtime)
+    implementation(libs.play.services.fitness)
     ksp(libs.room.compiler)
 
     // --- Dagger Hilt ---
