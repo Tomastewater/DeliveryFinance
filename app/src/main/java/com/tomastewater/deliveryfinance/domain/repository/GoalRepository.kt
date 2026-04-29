@@ -9,4 +9,5 @@ interface GoalRepository {
     suspend fun saveGoal(goal: Goal)
     suspend fun deleteGoal(goal: Goal)
     suspend fun updateGoalProgress(goalId: Long, amount: Double)
+    suspend fun setPrincipalGoal(goalId: Long)
 }

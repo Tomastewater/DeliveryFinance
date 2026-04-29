@@ -5,6 +5,7 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import com.tomastewater.deliveryfinance.data.local.entity.GoalEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -25,4 +26,19 @@ interface GoalDao {
 
     @Query("UPDATE goals SET savedAmount = :amount WHERE id = :goalId")
     suspend fun updateProgress(goalId: Long, amount: Double)
+
+    // 1. Le quita el estado 'Principal' a todas las metas
+    @Query("UPDATE goals SET isPrincipal = 0")
+    suspend fun clearPrincipalGoals()
+
+    // 2. Le pone el estado 'Principal' a una meta específica
+    @Query("UPDATE goals SET isPrincipal = 1 WHERE id = :goalId")
+    suspend fun setAsPrincipal(goalId: Long)
+
+    // 3. Transacción segura que agrupa ambos pasos
+    @Transaction
+    suspend fun updatePrincipalGoal(goalId: Long) {
+        clearPrincipalGoals()
+        setAsPrincipal(goalId)
+    }
 }

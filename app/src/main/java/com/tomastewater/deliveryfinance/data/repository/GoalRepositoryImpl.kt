@@ -34,6 +34,11 @@ class GoalRepositoryImpl(
     override suspend fun updateGoalProgress(goalId: Long, amount: Double) {
         dao.updateProgress(goalId, amount)
     }
+
+    override suspend fun setPrincipalGoal(goalId: Long) {
+        dao.updatePrincipalGoal(goalId)
+    }
+
 }
 
 // --- Mappers ---
@@ -44,7 +49,9 @@ fun GoalEntity.toDomain(): Goal {
         targetAmount = targetPrice,
         savedAmount = savedAmount,
         linkUrl = linkUrl,
-        isCompleted = isCompleted
+        isCompleted = isCompleted,
+        iconId = iconId,
+        isPrincipal = isPrincipal
     )
 }
 
@@ -55,6 +62,8 @@ fun Goal.toEntity(): GoalEntity {
         targetPrice = targetAmount,
         savedAmount = savedAmount,
         linkUrl = linkUrl,
-        isCompleted = isCompleted
+        isCompleted = isCompleted,
+        iconId = iconId,
+        isPrincipal = isPrincipal
     )
 }

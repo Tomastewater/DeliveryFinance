@@ -12,5 +12,7 @@ data class GoalEntity(
     val savedAmount: Double = 0.0, // Cuánto llevas separado específicamente para esto
     val linkUrl: String? = null,   // El link de Mercado Libre
     val isCompleted: Boolean = false,
+    val iconId: String = "Star",
+    val isPrincipal: Boolean = false,
     val createdAt: Long = System.currentTimeMillis()
 )

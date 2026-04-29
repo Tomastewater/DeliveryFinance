@@ -14,6 +14,11 @@ val ExpenseRed = Color(0xFFBA1A1A)
 val WarningBackground = Color(0xFFFFDAD6)
 val WarningText = Color(0xFF93000A)
 
+private val PrimaryLight = Color(0xFFDCE1FF)
+private val SecondaryGreen = Color(0xFF006C49)
+private val SecondaryContainer = Color(0xFF6CF8BB)
+
+
 // Paleta "Deep Zen" de Tomás
 val DarkBackground = Color(0xFF171F22)
 val MutedOlive = Color(0xFF666B64)
