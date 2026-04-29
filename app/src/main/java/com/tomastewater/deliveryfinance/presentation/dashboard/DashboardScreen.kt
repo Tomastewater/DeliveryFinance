@@ -41,6 +41,7 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import com.tomastewater.deliveryfinance.core.navigation.Screen
 import com.tomastewater.deliveryfinance.presentation.dashboard.components.ActiveGoalItem
 import com.tomastewater.deliveryfinance.presentation.dashboard.components.DeliveryBottomBar
 import com.tomastewater.deliveryfinance.presentation.dashboard.components.ExpandableFAB
@@ -75,8 +76,13 @@ fun DashboardScreen(
         },
         bottomBar = {
             DeliveryBottomBar(
-                currentRoute = "dashboard_route",
-                onNavigate = { /* Aquí conectaremos tu NavController luego */ }
+                currentRoute = Screen.Dashboard.route, // Le decimos que estamos en el inicio
+                onNavigate = { route ->
+                    when(route) {
+                        Screen.GoalHistory.route -> onNavigateToGoalHistory()
+                        Screen.History.route -> onNavigateToHistory()
+                    }
+                }
             )
         },
         floatingActionButton = {

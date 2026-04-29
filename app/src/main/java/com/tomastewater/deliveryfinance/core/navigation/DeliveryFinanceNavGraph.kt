@@ -6,7 +6,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.tomastewater.deliveryfinance.presentation.dashboard.DashboardScreen
 import com.tomastewater.deliveryfinance.presentation.goal.AddGoalScreen
-import com.tomastewater.deliveryfinance.presentation.goal.GoalHistoryScreen
+import com.tomastewater.deliveryfinance.presentation.goal.GoalsScreen // <-- NUEVA PANTALLA
 import com.tomastewater.deliveryfinance.presentation.history.HistoryScreen
 import com.tomastewater.deliveryfinance.presentation.transaction.AddTransactionScreen
 
@@ -23,7 +23,7 @@ fun DeliveryFinanceNavigation() {
                 onNavigateToAddGoal = { navController.navigate(Screen.AddGoal.route) },
                 onNavigateToHistory = { navController.navigate(Screen.History.route) },
                 onNavigateToGoalHistory = { navController.navigate(Screen.GoalHistory.route) },
-                onNavigateToAddTransaction = { type -> // <-- NUEVO
+                onNavigateToAddTransaction = { type ->
                     navController.navigate(Screen.AddTransaction.createRoute(type))
                 }
             )
@@ -38,11 +38,22 @@ fun DeliveryFinanceNavigation() {
         }
 
         composable(route = Screen.GoalHistory.route) {
-            GoalHistoryScreen(onNavigateBack = { navController.popBackStack() })
+            GoalsScreen(
+                onNavigateToAddGoal = { navController.navigate(Screen.AddGoal.route) },
+                onNavigateToDashboard = {
+                    // popUpTo evita que el usuario acumule 100 pantallas de Dashboard al ir y volver
+                    navController.navigate(Screen.Dashboard.route) {
+                        popUpTo(Screen.Dashboard.route) { inclusive = true }
+                    }
+                },
+                onNavigateToHistory = { navController.navigate(Screen.History.route) },
+                onAddMoneyClick = { goal ->
+                    // TODO: Ticket FIN-404 (Aportar dinero a la meta)
+                }
+            )
         }
 
         composable(route = Screen.AddTransaction.route) { backStackEntry ->
-            // Le pasamos el tipo de transacción al ViewModel
             AddTransactionScreen(onNavigateBack = { navController.popBackStack() })
         }
     }

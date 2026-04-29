@@ -11,12 +11,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.tomastewater.deliveryfinance.ui.theme.PrimaryBlue
 import com.tomastewater.deliveryfinance.ui.theme.TextMuted
+import com.tomastewater.deliveryfinance.core.navigation.Screen
 
 // Rutas rápidas para la barra
 enum class BottomNavItem(val title: String, val icon: ImageVector, val route: String) {
-    Dashboard("Inicio", Icons.Default.Dashboard, "dashboard_route"),
-    Movements("Historial", Icons.Default.ReceiptLong, "history_route"),
-    Goals("Metas", Icons.Default.Star, "goal_history_route"),
+    Dashboard("Inicio", Icons.Default.Dashboard, Screen.Dashboard.route),
+    Movements("Historial", Icons.Default.ReceiptLong, Screen.History.route),
+    Goals("Metas", Icons.Default.Star, Screen.GoalHistory.route),
     Stats("Estadísticas", Icons.Default.Analytics, "stats_route")
 }
 
@@ -29,7 +30,7 @@ fun DeliveryBottomBar(
         containerColor = Color.White,
         contentColor = PrimaryBlue
     ) {
-        BottomNavItem.values().forEach { item ->
+        BottomNavItem.entries.forEach { item ->
             val isSelected = currentRoute == item.route
             NavigationBarItem(
                 icon = { Icon(item.icon, contentDescription = item.title) },
