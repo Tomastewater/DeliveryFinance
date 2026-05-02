@@ -1,5 +1,6 @@
 package com.tomastewater.deliveryfinance.presentation.goal
 
+import android.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -9,19 +10,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddCircleOutline
-import androidx.compose.material.icons.filled.Computer
-import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.FitnessCenter
-import androidx.compose.material.icons.filled.FlightTakeoff
-import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.Payments
-import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.TwoWheeler
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -37,6 +30,24 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.tomastewater.deliveryfinance.core.navigation.Screen
 import com.tomastewater.deliveryfinance.domain.model.Goal
 import com.tomastewater.deliveryfinance.presentation.dashboard.components.DeliveryBottomBar
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material3.TextFieldColors
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.window.Dialog
+import com.tomastewater.deliveryfinance.core.designsystem.ConfirmDialog
 import com.tomastewater.deliveryfinance.ui.theme.BackgroundGray
 import com.tomastewater.deliveryfinance.ui.theme.PrimaryBlue
 import com.tomastewater.deliveryfinance.ui.theme.PrimaryLight
@@ -53,9 +64,17 @@ fun GoalsScreen(
     onNavigateToDashboard: () -> Unit,
     onNavigateToHistory: () -> Unit,
     onAddMoneyClick: (Goal) -> Unit,
+    onNavigateToGoalDetail: (Long) -> Unit,
     viewModel: GoalsViewModel = hiltViewModel()
 ) {
+
     val state by viewModel.state.collectAsStateWithLifecycle()
+
+    // Estado para controlar qué meta estamos aportando (null significa que el diálogo está cerrado)
+    var goalToAddMoney by remember { mutableStateOf<Goal?>(null) }
+    var goalToDelete by remember { mutableStateOf<Goal?>(null) }
+    var goalToComplete by remember { mutableStateOf<Goal?>(null) }
+    var goalToMakePrincipal by remember { mutableStateOf<Goal?>(null) }
 
     // Obtenemos la meta principal y las secundarias
     val featuredGoal = state.activeGoals.find { it.isPrincipal } ?: state.activeGoals.firstOrNull()
@@ -91,7 +110,9 @@ fun GoalsScreen(
             // 1. HEADER
             item {
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.Bottom
                 ) {
@@ -117,8 +138,11 @@ fun GoalsScreen(
                     item {
                         FeaturedGoalCard(
                             goal = featuredGoal,
-                            onAddMoneyClick = { onAddMoneyClick(featuredGoal) },
-                            onEditClick = { /* TODO FIN-404 */ }
+                            onAddMoneyClick = { goalToAddMoney = featuredGoal }, // <-- ESTO ESTABA FALTANDO
+                            onEditClick = { onNavigateToGoalDetail(featuredGoal.id) },
+                            onMakePrincipal = { /* Ya es la principal, puedes omitirlo o pasar un lambda vacío */ },
+                            onDelete = { viewModel.deleteGoal(featuredGoal) },
+                            onComplete = { viewModel.completeGoalManually(featuredGoal) } // Agregaremos esto ahora
                         )
                     }
                 }
@@ -129,7 +153,15 @@ fun GoalsScreen(
                     items(secondaryGoals.chunked(2)) { rowGoals ->
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                             rowGoals.forEach { goal ->
-                                SecondaryGoalCard(goal = goal, modifier = Modifier.weight(1f), onClick = { onAddMoneyClick(goal) })
+                                SecondaryGoalCard(
+                                    goal = goal,
+                                    modifier = Modifier.weight(1f),
+                                    onClick = { onNavigateToGoalDetail(goal.id) }, // <--- AHORA NAVEGA
+                                    onEdit = { onNavigateToGoalDetail(goal.id) }, // <--- La edición será en detalle
+                                    onMakePrincipal = { goalToMakePrincipal = goal }, // <--- ABRE DIÁLOGO
+                                    onDelete = { goalToDelete = goal }, // <--- ABRE DIÁLOGO
+                                    onComplete = { goalToComplete = goal } // <--- ABRE DIÁLOGO
+                                )
                             }
                             if (rowGoals.size == 1) {
                                 AddGoalPlaceholderCard(modifier = Modifier.weight(1f), onClick = onNavigateToAddGoal)
@@ -145,7 +177,9 @@ fun GoalsScreen(
                         }
                     }
                 } else {
-                    item { AddGoalPlaceholderCard(modifier = Modifier.fillMaxWidth().height(150.dp), onClick = onNavigateToAddGoal) }
+                    item { AddGoalPlaceholderCard(modifier = Modifier
+                        .fillMaxWidth()
+                        .height(150.dp), onClick = onNavigateToAddGoal) }
                 }
 
                 item { TipCard() }
@@ -154,7 +188,9 @@ fun GoalsScreen(
                 // --- VISTA: METAS FINALIZADAS ---
                 if (state.completedGoals.isEmpty()) {
                     item {
-                        Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                        Box(modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(32.dp), contentAlignment = Alignment.Center) {
                             Text("Aún no has completado ninguna meta.", color = TextMuted)
                         }
                     }
@@ -169,6 +205,49 @@ fun GoalsScreen(
             item { Spacer(modifier = Modifier.height(80.dp)) }
         }
     }
+    goalToAddMoney?.let { selectedGoal ->
+        AddMoneyAnimatedDialog(
+            goal = selectedGoal,
+            availableBalance = state.availableBalance,
+            onDismiss = { goalToAddMoney = null },
+            onConfirm = { amount ->
+                viewModel.addMoneyToGoal(selectedGoal, amount)
+                goalToAddMoney = null
+            }
+        )
+
+    }
+    goalToDelete?.let { goal ->
+        ConfirmDialog(
+            title = "Eliminar Meta",
+            message = "¿Estás seguro de que deseas eliminar '${goal.title}'? Esta acción no se puede deshacer.",
+            confirmText = "Eliminar",
+            isDestructive = true,
+            onConfirm = { viewModel.deleteGoal(goal) },
+            onDismiss = { goalToDelete = null }
+        )
+    }
+
+    goalToMakePrincipal?.let { goal ->
+        ConfirmDialog(
+            title = "Hacer Principal",
+            message = "Esto destacará '${goal.title}' en tu inicio y reemplazará la actual.",
+            confirmText = "Aceptar",
+            onConfirm = { viewModel.makePrincipal(goal) },
+            onDismiss = { goalToMakePrincipal = null }
+        )
+    }
+
+    goalToComplete?.let { goal ->
+        ConfirmDialog(
+            title = "Completar Manualmente",
+            message = "Esto moverá '${goal.title}' a Finalizadas sin descontar saldo de tu billetera.",
+            confirmText = "Completar",
+            onConfirm = { viewModel.completeGoalManually(goal) },
+            onDismiss = { goalToComplete = null }
+        )
+    }
+
 }
 
 // --- COMPONENTES UI (TARJETAS Y BOTONES) ---
@@ -218,7 +297,14 @@ fun FilterPillRow(isShowingActive: Boolean, onFilterChanged: (Boolean) -> Unit) 
 }
 
 @Composable
-fun FeaturedGoalCard(goal: Goal, onAddMoneyClick: () -> Unit, onEditClick: () -> Unit) {
+fun FeaturedGoalCard(
+    goal: Goal,
+    onAddMoneyClick: () -> Unit,
+    onEditClick: () -> Unit,
+    onComplete: () -> Unit,
+    onMakePrincipal: () -> Unit,
+    onDelete: () -> Unit,
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -228,7 +314,9 @@ fun FeaturedGoalCard(goal: Goal, onAddMoneyClick: () -> Unit, onEditClick: () ->
         Column(modifier = Modifier.padding(24.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
                 Column {
-                    Box(modifier = Modifier.background(SecondaryContainer, RoundedCornerShape(12.dp)).padding(horizontal = 8.dp, vertical = 4.dp)) {
+                    Box(modifier = Modifier
+                        .background(SecondaryContainer, RoundedCornerShape(12.dp))
+                        .padding(horizontal = 8.dp, vertical = 4.dp)) {
                         Text("META PRINCIPAL", fontSize = 10.sp, fontWeight = FontWeight.Black, color = Color(0xFF005236))
                     }
                     Spacer(modifier = Modifier.height(8.dp))
@@ -248,12 +336,17 @@ fun FeaturedGoalCard(goal: Goal, onAddMoneyClick: () -> Unit, onEditClick: () ->
 
             LinearProgressIndicator(
                 progress = { goal.progressPercentage },
-                modifier = Modifier.fillMaxWidth().height(12.dp).clip(RoundedCornerShape(6.dp)),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(12.dp)
+                    .clip(RoundedCornerShape(6.dp)),
                 color = SecondaryGreen,
                 trackColor = BackgroundGray
             )
 
-            Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+            Row(modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text("${(goal.progressPercentage * 100).toInt()}% completado", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = SecondaryGreen)
                 Text("Faltan $${(goal.targetAmount - goal.savedAmount).toInt()}", fontSize = 12.sp, color = TextMuted)
             }
@@ -263,7 +356,9 @@ fun FeaturedGoalCard(goal: Goal, onAddMoneyClick: () -> Unit, onEditClick: () ->
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 Button(
                     onClick = onAddMoneyClick,
-                    modifier = Modifier.weight(1f).height(48.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue),
                     shape = RoundedCornerShape(12.dp)
                 ) {
@@ -285,27 +380,81 @@ fun FeaturedGoalCard(goal: Goal, onAddMoneyClick: () -> Unit, onEditClick: () ->
 }
 
 @Composable
-fun SecondaryGoalCard(goal: Goal, modifier: Modifier = Modifier, onClick: () -> Unit) {
+fun SecondaryGoalCard(
+    goal: Goal,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+    onEdit: () -> Unit,
+    onMakePrincipal: () -> Unit,
+    onDelete: () -> Unit,
+    onComplete: () -> Unit
+) {
+    var showMenu by remember { mutableStateOf(false) }
+
     Card(
-        modifier = modifier.clickable { onClick() }.height(140.dp),
+        modifier = modifier
+            .clickable { onClick() }
+            .animateContentSize() // <--- Animación
+            .height(150.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         shape = RoundedCornerShape(16.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp).fillMaxSize(), verticalArrangement = Arrangement.SpaceBetween) {
+        Column(modifier = Modifier
+            .padding(16.dp)
+            .fillMaxSize(), verticalArrangement = Arrangement.SpaceBetween) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Box(modifier = Modifier.background(PrimaryLight, RoundedCornerShape(8.dp)).padding(6.dp)) {
+                Box(modifier = Modifier
+                    .background(PrimaryLight, RoundedCornerShape(8.dp))
+                    .padding(6.dp)) {
                     Icon(imageVector = goalIconsMap[goal.iconId] ?: Icons.Default.Star, contentDescription = null, tint = PrimaryBlue, modifier = Modifier.size(20.dp))
                 }
-                Text("${(goal.progressPercentage * 100).toInt()}%", fontWeight = FontWeight.Bold, color = SecondaryGreen)
+
+                // --- MENÚ DE TRES PUNTOS ---
+                Box {
+                    IconButton(
+                        onClick = { showMenu = true },
+                        modifier = Modifier.size(24.dp)
+                    ) {
+                        Icon(Icons.Default.MoreVert, contentDescription = "Opciones", tint = TextMuted)
+                    }
+                    DropdownMenu(
+                        expanded = showMenu,
+                        onDismissRequest = { showMenu = false },
+                        modifier = Modifier.background(Color.White)
+                    ) {
+                        if (!goal.isPrincipal) {
+                            DropdownMenuItem(
+                                text = { Text("Hacer principal", color = Color.Gray) },
+                                onClick = { showMenu = false; onMakePrincipal() }
+                            )
+                        }
+                        DropdownMenuItem(
+                            text = { Text("Completar manualmente", color = SecondaryGreen) },
+                            onClick = { showMenu = false; onComplete() }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Editar meta", color = Color.Gray) },
+                            onClick = { showMenu = false; onEdit() }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Eliminar", color = Color.Red) },
+                            onClick = { showMenu = false; onDelete() }
+                        )
+                    }
+                }
             }
             Column {
                 Text(goal.title, fontWeight = FontWeight.Bold, color = PrimaryBlue, maxLines = 1)
                 Text("$${goal.savedAmount.toInt()} / $${goal.targetAmount.toInt()}", fontSize = 12.sp, color = TextMuted)
                 Spacer(modifier = Modifier.height(8.dp))
+
                 LinearProgressIndicator(
                     progress = { goal.progressPercentage },
-                    modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(6.dp)
+                        .clip(RoundedCornerShape(3.dp)),
                     color = SecondaryGreen,
                     trackColor = BackgroundGray
                 )
@@ -317,17 +466,23 @@ fun SecondaryGoalCard(goal: Goal, modifier: Modifier = Modifier, onClick: () -> 
 @Composable
 fun CompletedGoalCard(goal: Goal) {
     Card(
-        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 12.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         shape = RoundedCornerShape(16.dp)
     ) {
         Row(
-            modifier = Modifier.padding(16.dp).fillMaxWidth(),
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
-                modifier = Modifier.size(48.dp).background(Color(0xFF6CF8BB).copy(alpha = 0.3f), CircleShape),
+                modifier = Modifier
+                    .size(48.dp)
+                    .background(Color(0xFF6CF8BB).copy(alpha = 0.3f), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(imageVector = goalIconsMap[goal.iconId] ?: Icons.Default.Star, contentDescription = null, tint = Color(0xFF006C49))
@@ -369,7 +524,9 @@ fun TipCard() {
         shape = RoundedCornerShape(16.dp)
     ) {
         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(modifier = Modifier.size(48.dp).background(Color.White.copy(alpha = 0.1f), CircleShape), contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier
+                .size(48.dp)
+                .background(Color.White.copy(alpha = 0.1f), CircleShape), contentAlignment = Alignment.Center) {
                 Icon(Icons.Default.Lightbulb, contentDescription = null, tint = Color.White)
             }
             Spacer(modifier = Modifier.width(16.dp))
@@ -379,4 +536,99 @@ fun TipCard() {
             }
         }
     }
+}
+
+@Composable
+fun AddMoneyAnimatedDialog(
+    goal: Goal,
+    availableBalance: Double, // Pasamos el saldo actual
+    onDismiss: () -> Unit,
+    onConfirm: (Double) -> Unit
+) {
+    var amountText by remember { mutableStateOf("") }
+    var isVisible by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) } // Control de error
+
+    LaunchedEffect(Unit) { isVisible = true }
+
+    fun closeAndDismiss() {
+        isVisible = false
+        onDismiss()
+    }
+
+    Dialog(onDismissRequest = { closeAndDismiss() }) {
+        AnimatedVisibility(
+            visible = isVisible,
+            enter = fadeIn(tween(300)) + scaleIn(tween(300), initialScale = 0.8f),
+            exit = fadeOut(tween(200)) + scaleOut(tween(200), targetScale = 0.8f)
+        ) {
+            Card(
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Icon(Icons.Default.Payments, contentDescription = null, tint = PrimaryBlue, modifier = Modifier.size(48.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text("Aportar a ${goal.title}", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = PrimaryBlue)
+
+                    // Mostrar saldo actual como referencia
+                    Text("Saldo disponible: $${availableBalance.toInt()}", color = SecondaryGreen, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    Text("Faltan $${(goal.targetAmount - goal.savedAmount).toInt()}", color = TextMuted, fontSize = 14.sp)
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    OutlinedTextField(
+                        value = amountText,
+                        onValueChange = {
+                            amountText = it
+                            errorMessage = null // Limpiamos el error al escribir
+                        },
+                        label = { Text("Monto a sumar") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        colors = OutlinedTextFieldDefaults.colors(Color.Gray),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        isError = errorMessage != null, // Pinta el borde rojo si hay error
+                        supportingText = {
+                            if (errorMessage != null) {
+                                Text(errorMessage!!, color = MaterialTheme.colorScheme.error)
+                            }
+                        }
+                    )
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        TextButton(onClick = { closeAndDismiss() }, modifier = Modifier.weight(1f)) {
+                            Text("Cancelar", color = TextMuted)
+                        }
+                        Button(
+                            onClick = {
+                                val amount = amountText.toDoubleOrNull() ?: 0.0
+                                if (amount > availableBalance) {
+                                    errorMessage = "Saldo insuficiente."
+                                } else if (amount > 0) {
+                                    onConfirm(amount)
+                                    closeAndDismiss()
+                                } else {
+                                    errorMessage = "Ingresa un monto válido."
+                                }
+                            },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
+                        ) {
+                            Text("Aportar")
+                        }
+                    }
+                }
+            }
+        }
+
+    }
+
 }

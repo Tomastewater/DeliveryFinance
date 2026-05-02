@@ -7,10 +7,9 @@ import androidx.room.PrimaryKey
 data class TransactionEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
-
     val amount: Double,
-    val type: String, // Guardaremos "INCOME" (Ingreso) o "EXPENSE" (Gasto)
-    val category: String, // Ej: "Delivery", "Nafta", "Repuestos"
-    val timestamp: Long, // Guardaremos la fecha en milisegundos para ordenar fácil
-    val note: String? = null // Opcional: "Carga en YPF", "Propina extra"
+    val type: String,
+    val category: String,
+    val timestamp: Long,
+    val note: String?
 )

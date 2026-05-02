@@ -6,8 +6,10 @@ import com.tomastewater.deliveryfinance.domain.model.Goal
 import com.tomastewater.deliveryfinance.domain.repository.GoalRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.map
+import javax.inject.Inject
 
-class GoalRepositoryImpl(
+class GoalRepositoryImpl @Inject constructor(
     private val dao: GoalDao
 ) : GoalRepository {
 
@@ -23,12 +25,19 @@ class GoalRepositoryImpl(
         }
     }
 
+    // --- NUEVO: Obtener una meta específica en tiempo real ---
+    override fun getGoalById(id: Long): Flow<Goal?> {
+        return dao.getGoalById(id).map { entity ->
+            entity?.toDomain() // Retorna la meta si la encuentra, o null si no existe
+        }
+    }
+
     override suspend fun saveGoal(goal: Goal) {
         dao.insertGoal(goal.toEntity())
     }
 
     override suspend fun deleteGoal(goal: Goal) {
-        dao.insertGoal(goal.toEntity().copy(isCompleted = true))
+        dao.deleteGoal(goal.toEntity())
     }
 
     override suspend fun updateGoalProgress(goalId: Long, amount: Double) {
@@ -41,17 +50,19 @@ class GoalRepositoryImpl(
 
 }
 
-// --- Mappers ---
+// --- Mappers Actualizados ---
 fun GoalEntity.toDomain(): Goal {
     return Goal(
         id = id,
         title = title,
         targetAmount = targetPrice,
         savedAmount = savedAmount,
-        linkUrl = linkUrl,
+        linkUrl = linkUrl ?: "",
         isCompleted = isCompleted,
         iconId = iconId,
-        isPrincipal = isPrincipal
+        isPrincipal = isPrincipal,
+        imageUrl = imageUrl,
+        createdAt = createdAt
     )
 }
 
@@ -64,6 +75,8 @@ fun Goal.toEntity(): GoalEntity {
         linkUrl = linkUrl,
         isCompleted = isCompleted,
         iconId = iconId,
-        isPrincipal = isPrincipal
+        isPrincipal = isPrincipal,
+        imageUrl = imageUrl,
+        createdAt = createdAt
     )
 }

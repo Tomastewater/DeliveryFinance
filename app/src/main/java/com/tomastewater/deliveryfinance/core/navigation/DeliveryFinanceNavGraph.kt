@@ -6,9 +6,12 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.tomastewater.deliveryfinance.presentation.dashboard.DashboardScreen
 import com.tomastewater.deliveryfinance.presentation.goal.AddGoalScreen
-import com.tomastewater.deliveryfinance.presentation.goal.GoalsScreen // <-- NUEVA PANTALLA
+import com.tomastewater.deliveryfinance.presentation.goal.GoalsScreen
 import com.tomastewater.deliveryfinance.presentation.history.HistoryScreen
 import com.tomastewater.deliveryfinance.presentation.transaction.AddTransactionScreen
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
+import com.tomastewater.deliveryfinance.presentation.goal.GoalDetailScreen
 
 @Composable
 fun DeliveryFinanceNavigation() {
@@ -49,7 +52,19 @@ fun DeliveryFinanceNavigation() {
                 onNavigateToHistory = { navController.navigate(Screen.History.route) },
                 onAddMoneyClick = { goal ->
                     // TODO: Ticket FIN-404 (Aportar dinero a la meta)
+                },
+                onNavigateToGoalDetail = { goalId ->
+                    navController.navigate("goal_detail_route/$goalId")
                 }
+            )
+        }
+
+        composable(
+            route = "goal_detail_route/{goalId}",
+            arguments = listOf(navArgument("goalId") { type = NavType.LongType })
+        ) {
+            GoalDetailScreen(
+                onNavigateBack = { navController.popBackStack() },
             )
         }
 

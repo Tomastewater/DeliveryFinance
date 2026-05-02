@@ -5,12 +5,13 @@ data class Goal(
     val title: String,
     val targetAmount: Double,
     val savedAmount: Double = 0.0,
-    val linkUrl: String? = null,
+    val iconId: String = "Star",
+    val linkUrl: String = "",
     val isCompleted: Boolean = false,
-    val iconId: String = "Star",         // Icono por defecto
-    val isPrincipal: Boolean = false
+    val isPrincipal: Boolean = false,
+    val imageUrl: String? = null,
+    val createdAt: Long = System.currentTimeMillis()
 ) {
-
     val progressPercentage: Float
-        get() = if (targetAmount > 0) (savedAmount / targetAmount).toFloat() else 0f
+        get() = if (targetAmount > 0) (savedAmount / targetAmount).toFloat().coerceIn(0f, 1f) else 0f
 }

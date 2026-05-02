@@ -31,13 +31,10 @@ class TransactionRepositoryImpl(
     }
 
     override suspend fun saveTransaction(transaction: Transaction) {
-        TODO("Not yet implemented")
+        dao.insertTransaction(transaction.toEntity())
     }
 }
 
-// --- Funciones de Mapeo (Mappers) ---
-// Normalmente se ponen en un archivo separado en `data/mapper`,
-// pero las dejo aquí para que veas la lógica completa.
 
 fun TransactionEntity.toDomain(): Transaction {
     return Transaction(

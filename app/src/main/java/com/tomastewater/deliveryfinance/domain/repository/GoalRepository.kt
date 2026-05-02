@@ -6,6 +6,10 @@ import kotlinx.coroutines.flow.Flow
 interface GoalRepository {
     fun getActiveGoals(): Flow<List<Goal>>
     fun getCompletedGoals(): Flow<List<Goal>>
+
+    // --- NUEVO: Obtener meta específica ---
+    fun getGoalById(id: Long): Flow<Goal?>
+
     suspend fun saveGoal(goal: Goal)
     suspend fun deleteGoal(goal: Goal)
     suspend fun updateGoalProgress(goalId: Long, amount: Double)

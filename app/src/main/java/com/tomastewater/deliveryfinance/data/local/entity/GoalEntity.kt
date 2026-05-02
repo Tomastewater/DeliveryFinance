@@ -14,5 +14,6 @@ data class GoalEntity(
     val isCompleted: Boolean = false,
     val iconId: String = "Star",
     val isPrincipal: Boolean = false,
+    val imageUrl: String? = null,
     val createdAt: Long = System.currentTimeMillis()
 )

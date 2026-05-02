@@ -21,10 +21,15 @@ interface GoalDao {
     @Query("SELECT * FROM goals WHERE isCompleted = 1 ORDER BY createdAt DESC")
     fun getCompletedGoals(): Flow<List<GoalEntity>>
 
+    // --- NUEVO: Buscar una sola meta por su ID ---
+    @Query("SELECT * FROM goals WHERE id = :id")
+    fun getGoalById(id: Long): Flow<GoalEntity?>
+
     @Delete
     suspend fun deleteGoal(goal: GoalEntity)
 
-    @Query("UPDATE goals SET savedAmount = :amount WHERE id = :goalId")
+    // CORRECCIÓN: Ahora suma matemáticamente el monto al valor existente
+    @Query("UPDATE goals SET savedAmount = savedAmount + :amount WHERE id = :goalId")
     suspend fun updateProgress(goalId: Long, amount: Double)
 
     // 1. Le quita el estado 'Principal' a todas las metas
