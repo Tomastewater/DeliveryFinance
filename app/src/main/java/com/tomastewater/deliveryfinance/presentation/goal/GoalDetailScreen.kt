@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.tomastewater.deliveryfinance.core.designsystem.ConfirmDialog
+import com.tomastewater.deliveryfinance.presentation.goal.components.AddMoneyAnimatedDialog
 import java.text.SimpleDateFormat
 import java.util.*
 
