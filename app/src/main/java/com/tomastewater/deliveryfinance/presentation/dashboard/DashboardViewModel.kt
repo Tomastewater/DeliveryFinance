@@ -98,6 +98,8 @@ class DashboardViewModel @Inject constructor(
                         predictionsMap[goal.id] = -1 // Código para "Ritmo insuficiente"
                         generalSavingsCapacity = result.deficit
                     }
+
+                    else -> {}
                 }
             }
 

@@ -28,7 +28,6 @@ class GetAvailableBalanceUseCase @Inject constructor(
 
             val totalFixedExpenses = fixedExpenses.sumOf { it.amount }
 
-            // Fórmula RF-04: Ingresos - Egresos Variables - Egresos Fijos
             totalIncomes - totalVariableExpenses - totalFixedExpenses
         }
     }

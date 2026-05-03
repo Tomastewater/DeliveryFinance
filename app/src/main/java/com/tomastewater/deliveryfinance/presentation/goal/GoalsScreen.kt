@@ -39,15 +39,20 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.filled.AutoGraph
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.WarningAmber
 import androidx.compose.material3.TextFieldColors
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.window.Dialog
 import com.tomastewater.deliveryfinance.core.designsystem.ConfirmDialog
+import com.tomastewater.deliveryfinance.domain.usecase.goal.ProjectionResult
 import com.tomastewater.deliveryfinance.ui.theme.BackgroundGray
 import com.tomastewater.deliveryfinance.ui.theme.PrimaryBlue
 import com.tomastewater.deliveryfinance.ui.theme.PrimaryLight
@@ -79,6 +84,7 @@ fun GoalsScreen(
     // Obtenemos la meta principal y las secundarias
     val featuredGoal = state.activeGoals.find { it.isPrincipal } ?: state.activeGoals.firstOrNull()
     val secondaryGoals = state.activeGoals.filter { it.id != featuredGoal?.id }
+    val projection by viewModel.principalGoalProjection.collectAsState()
 
     Scaffold(
         containerColor = BackgroundGray,
@@ -138,11 +144,12 @@ fun GoalsScreen(
                     item {
                         FeaturedGoalCard(
                             goal = featuredGoal,
-                            onAddMoneyClick = { goalToAddMoney = featuredGoal }, // <-- ESTO ESTABA FALTANDO
+                            onAddMoneyClick = { goalToAddMoney = featuredGoal },
                             onEditClick = { onNavigateToGoalDetail(featuredGoal.id) },
                             onMakePrincipal = { /* Ya es la principal, puedes omitirlo o pasar un lambda vacío */ },
                             onDelete = { viewModel.deleteGoal(featuredGoal) },
-                            onComplete = { viewModel.completeGoalManually(featuredGoal) } // Agregaremos esto ahora
+                            onComplete = { viewModel.completeGoalManually(featuredGoal) },
+                            projection = projection
                         )
                     }
                 }
@@ -156,11 +163,11 @@ fun GoalsScreen(
                                 SecondaryGoalCard(
                                     goal = goal,
                                     modifier = Modifier.weight(1f),
-                                    onClick = { onNavigateToGoalDetail(goal.id) }, // <--- AHORA NAVEGA
-                                    onEdit = { onNavigateToGoalDetail(goal.id) }, // <--- La edición será en detalle
-                                    onMakePrincipal = { goalToMakePrincipal = goal }, // <--- ABRE DIÁLOGO
-                                    onDelete = { goalToDelete = goal }, // <--- ABRE DIÁLOGO
-                                    onComplete = { goalToComplete = goal } // <--- ABRE DIÁLOGO
+                                    onClick = { onNavigateToGoalDetail(goal.id) },
+                                    onEdit = { onNavigateToGoalDetail(goal.id) },
+                                    onMakePrincipal = { goalToMakePrincipal = goal },
+                                    onDelete = { goalToDelete = goal },
+                                    onComplete = { goalToComplete = goal }
                                 )
                             }
                             if (rowGoals.size == 1) {
@@ -299,6 +306,7 @@ fun FilterPillRow(isShowingActive: Boolean, onFilterChanged: (Boolean) -> Unit) 
 @Composable
 fun FeaturedGoalCard(
     goal: Goal,
+    projection: ProjectionResult?,
     onAddMoneyClick: () -> Unit,
     onEditClick: () -> Unit,
     onComplete: () -> Unit,
@@ -312,54 +320,95 @@ fun FeaturedGoalCard(
         shape = RoundedCornerShape(16.dp)
     ) {
         Column(modifier = Modifier.padding(24.dp)) {
+
+            // --- CABECERA ---
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
                 Column {
                     Box(modifier = Modifier
-                        .background(SecondaryContainer, RoundedCornerShape(12.dp))
+                        .background(Color(0xFFE8F5E9), RoundedCornerShape(12.dp))
                         .padding(horizontal = 8.dp, vertical = 4.dp)) {
                         Text("META PRINCIPAL", fontSize = 10.sp, fontWeight = FontWeight.Black, color = Color(0xFF005236))
                     }
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text(goal.title, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = PrimaryBlue)
+                    Text(goal.title, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E3A8A))
                 }
-                Icon(imageVector = goalIconsMap[goal.iconId] ?: Icons.Default.Star, contentDescription = null, tint = PrimaryBlue, modifier = Modifier.size(28.dp))
+                Icon(imageVector = goalIconsMap[goal.iconId] ?: Icons.Default.Star, contentDescription = null, tint = Color(0xFF1E3A8A), modifier = Modifier.size(28.dp))
             }
 
             Spacer(modifier = Modifier.height(24.dp))
 
+            // --- MONTOS ---
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
-                Text("$${goal.savedAmount.toInt()}", fontSize = 32.sp, fontWeight = FontWeight.Black, color = PrimaryBlue)
-                Text("de $${goal.targetAmount.toInt()}", fontWeight = FontWeight.Bold, color = TextMuted)
+                Text("$${goal.savedAmount.toInt()}", fontSize = 32.sp, fontWeight = FontWeight.Black, color = Color(0xFF1E3A8A))
+                Text("de $${goal.targetAmount.toInt()}", fontWeight = FontWeight.Bold, color = Color(0xFF757682))
             }
 
             Spacer(modifier = Modifier.height(8.dp))
 
+            // --- BARRA DE PROGRESO ---
             LinearProgressIndicator(
                 progress = { goal.progressPercentage },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(12.dp)
-                    .clip(RoundedCornerShape(6.dp)),
-                color = SecondaryGreen,
-                trackColor = BackgroundGray
+                modifier = Modifier.fillMaxWidth().height(12.dp).clip(RoundedCornerShape(6.dp)),
+                color = Color(0xFF006C49),
+                trackColor = Color(0xFFF3F4F6)
             )
 
-            Row(modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 8.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("${(goal.progressPercentage * 100).toInt()}% completado", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = SecondaryGreen)
-                Text("Faltan $${(goal.targetAmount - goal.savedAmount).toInt()}", fontSize = 12.sp, color = TextMuted)
+            Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text("${(goal.progressPercentage * 100).toInt()}% completado", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF006C49))
+                Text("Faltan $${(goal.targetAmount - goal.savedAmount).toInt()}", fontSize = 12.sp, color = Color(0xFF757682))
+            }
+
+            // --- BANNER DEL MOTOR PREDICTIVO ---
+            if (projection != null) {
+                Spacer(modifier = Modifier.height(16.dp))
+
+                val bannerText: String
+                val bannerBg: Color
+                val bannerContentColor: Color
+                val bannerIcon: androidx.compose.ui.graphics.vector.ImageVector
+
+                when (projection) {
+                    is ProjectionResult.Success -> {
+                        bannerText = "Faltan aprox. ${projection.weeks * 7} días a este ritmo"
+                        bannerBg = Color(0xFFF0FDF4)
+                        bannerContentColor = Color(0xFF166534)
+                        bannerIcon = Icons.Default.AutoGraph
+                    }
+                    is ProjectionResult.Negative -> {
+                        bannerText = "Ahorro insuficiente para calcular"
+                        bannerBg = Color(0xFFFEF2F2)
+                        bannerContentColor = Color(0xFF991B1B)
+                        bannerIcon = Icons.Default.WarningAmber
+                    }
+                    is ProjectionResult.InsufficientData -> {
+                        bannerText = "Datos insuficientes para proyectar"
+                        bannerBg = Color(0xFFFFFBEB)
+                        bannerContentColor = Color(0xFFB45309)
+                        bannerIcon = Icons.Default.Info
+                    }
+                }
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(bannerBg, RoundedCornerShape(8.dp))
+                        .padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(bannerIcon, contentDescription = null, tint = bannerContentColor, modifier = Modifier.size(20.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(bannerText, color = bannerContentColor, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
 
+            // --- BOTONES ---
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 Button(
                     onClick = onAddMoneyClick,
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(48.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue),
+                    modifier = Modifier.weight(1f).height(48.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E3A8A)),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Icon(Icons.Default.Payments, contentDescription = null, modifier = Modifier.size(20.dp))
@@ -372,7 +421,7 @@ fun FeaturedGoalCard(
                     shape = RoundedCornerShape(12.dp),
                     contentPadding = PaddingValues(0.dp)
                 ) {
-                    Icon(Icons.Default.Edit, contentDescription = "Editar", tint = TextMuted)
+                    Icon(Icons.Default.Edit, contentDescription = "Editar", tint = Color(0xFF757682))
                 }
             }
         }

@@ -2,12 +2,18 @@ package com.tomastewater.deliveryfinance.presentation.goal
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.tomastewater.deliveryfinance.data.local.entity.FixedExpenseEntity
 import com.tomastewater.deliveryfinance.domain.model.Goal
+import com.tomastewater.deliveryfinance.domain.model.Transaction
 import com.tomastewater.deliveryfinance.domain.repository.GoalRepository
 import com.tomastewater.deliveryfinance.domain.usecase.balance.GetAvailableBalanceUseCase
+import com.tomastewater.deliveryfinance.domain.usecase.expense.GetFixedExpensesUseCase
 import com.tomastewater.deliveryfinance.domain.usecase.goal.AddMoneyToGoalUseCase
+import com.tomastewater.deliveryfinance.domain.usecase.goal.CalculateGoalTimeUseCase
 import com.tomastewater.deliveryfinance.domain.usecase.goal.GetActiveGoalsUseCase
 import com.tomastewater.deliveryfinance.domain.usecase.goal.GetCompletedGoalsUseCase
+import com.tomastewater.deliveryfinance.domain.usecase.goal.ProjectionResult
+import com.tomastewater.deliveryfinance.domain.usecase.transaction.GetTransactionsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -31,11 +37,18 @@ class GoalsViewModel @Inject constructor(
     private val getCompletedGoalsUseCase: GetCompletedGoalsUseCase,
     private val addMoneyToGoalUseCase: AddMoneyToGoalUseCase,
     private val goalRepository: GoalRepository,
-    private val getAvailableBalanceUseCase: GetAvailableBalanceUseCase
+    private val getAvailableBalanceUseCase: GetAvailableBalanceUseCase,
+    private val calculateGoalTimeUseCase: CalculateGoalTimeUseCase,
+    private val getTransactionsUseCase: GetTransactionsUseCase,
+    private val getFixedExpensesUseCase: GetFixedExpensesUseCase
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(GoalsUiState())
     val state: StateFlow<GoalsUiState> = _state.asStateFlow()
+
+    // Estado para la prediccion
+    private val _principalGoalProjection = MutableStateFlow<ProjectionResult?>(null)
+    val principalGoalProjection = _principalGoalProjection.asStateFlow()
 
     init {
         combine(
@@ -51,6 +64,23 @@ class GoalsViewModel @Inject constructor(
                 )
             }
         }.launchIn(viewModelScope)
+
+        combine(
+            getActiveGoalsUseCase(),
+            getTransactionsUseCase(),
+            getFixedExpensesUseCase()
+        ) { activeGoals, transactions, fixedExpenses ->
+
+            val principalGoal = activeGoals.find { it.isPrincipal }
+
+            if (principalGoal != null) {
+                calculateProjection(principalGoal, transactions, fixedExpenses)
+            } else {
+                _principalGoalProjection.value = null
+            }
+
+        }.launchIn(viewModelScope)
+
     }
 
     fun setFilter(showActive: Boolean) {
@@ -88,6 +118,15 @@ class GoalsViewModel @Inject constructor(
             )
             goalRepository.saveGoal(completedGoal) // Guarda la actualización en DB
         }
+    }
+
+    private fun calculateProjection(
+        principalGoal: Goal,
+        transactions: List<Transaction>,
+        fixedExpenses: List<FixedExpenseEntity>
+    ) {
+        val projection = calculateGoalTimeUseCase(principalGoal, transactions, fixedExpenses)
+        _principalGoalProjection.value = projection
     }
 
 }

@@ -4,6 +4,7 @@ import com.tomastewater.deliveryfinance.domain.model.Goal
 import com.tomastewater.deliveryfinance.domain.model.Transaction
 import com.tomastewater.deliveryfinance.domain.model.TransactionType
 import com.tomastewater.deliveryfinance.data.local.entity.FixedExpenseEntity
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 class CalculateGoalTimeUseCase @Inject constructor() {
@@ -14,25 +15,39 @@ class CalculateGoalTimeUseCase @Inject constructor() {
         fixedExpenses: List<FixedExpenseEntity>
     ): ProjectionResult {
 
-        // 1. Calcular ingreso semanal promedio (simplificado para el MVP)
-        val weeklyIncome = transactions
-            .filter { it.type == TransactionType.INCOME }
-            .sumOf { it.amount }
-
-        // 2. Calcular gastos variables semanales
-        val weeklyVariableExpenses = transactions
-            .filter { it.type == TransactionType.EXPENSE }
-            .sumOf { it.amount }
-
-        // 3. Sumar gastos fijos (ajustados a semana)
-        val weeklyFixedExpenses = fixedExpenses.sumOf { expense ->
-            if (expense.frequency == "MONTHLY") expense.amount / 4 else expense.amount
+        // 1. Verificación de Datos Insuficientes
+        if (transactions.isEmpty()) {
+            return ProjectionResult.InsufficientData
         }
 
-        // 4. Capacidad de ahorro real
+        // 2. Calcular cuántas semanas de historia tenemos
+        val oldestTransactionTime = transactions.minOf { it.timestamp }
+        val currentTime = System.currentTimeMillis()
+        val daysActive = TimeUnit.MILLISECONDS.toDays(currentTime - oldestTransactionTime)
+
+        // Si tenemos menos de 7 días de uso en la app, no podemos calcular un promedio semanal real
+        if (daysActive < 7) {
+            return ProjectionResult.InsufficientData
+        }
+
+        val weeksActive = daysActive / 7.0
+
+        // 3. Promedios REALES divididos por el tiempo de uso
+        val totalIncome = transactions.filter { it.type == TransactionType.INCOME }.sumOf { it.amount }
+        val totalVariableExpenses = transactions.filter { it.type == TransactionType.EXPENSE }.sumOf { it.amount }
+
+        val weeklyIncome = totalIncome / weeksActive
+        val weeklyVariableExpenses = totalVariableExpenses / weeksActive
+
+        // 4. Sumar gastos fijos (Dividimos entre 4.33 porque un mes tiene en promedio 4.33 semanas, no 4)
+        val weeklyFixedExpenses = fixedExpenses.sumOf { expense ->
+            if (expense.frequency == "MONTHLY") expense.amount / 4.33 else expense.amount
+        }
+
+        // 5. Capacidad de ahorro real
         val weeklySavingsCapacity = weeklyIncome - weeklyVariableExpenses - weeklyFixedExpenses
 
-        // 5. Cálculo de tiempo
+        // 6. Cálculo de tiempo
         val remainingAmount = activeGoal.targetAmount - activeGoal.savedAmount
 
         return if (weeklySavingsCapacity <= 0) {
@@ -47,4 +62,5 @@ class CalculateGoalTimeUseCase @Inject constructor() {
 sealed class ProjectionResult {
     data class Success(val weeks: Int, val savingsCapacity: Double) : ProjectionResult()
     data class Negative(val deficit: Double) : ProjectionResult()
+    object InsufficientData : ProjectionResult() // <-- TU NUEVO ESTADO
 }
