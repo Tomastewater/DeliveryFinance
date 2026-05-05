@@ -39,7 +39,7 @@ class DashboardViewModel @Inject constructor(
     val state: StateFlow<DashboardUiState> = _state.asStateFlow()
 
     init {
-        loadDashboardData() // Solo llamamos a una función unificada
+        loadDashboardData()
     }
 
     private fun loadDashboardData() {

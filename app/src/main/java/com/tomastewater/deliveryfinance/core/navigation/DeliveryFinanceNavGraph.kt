@@ -1,5 +1,8 @@
 package com.tomastewater.deliveryfinance.core.navigation
 
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.Composable
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -11,6 +14,7 @@ import com.tomastewater.deliveryfinance.presentation.history.HistoryScreen
 import com.tomastewater.deliveryfinance.presentation.transaction.AddTransactionScreen
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
+import com.tomastewater.deliveryfinance.presentation.commitments.CommitmentsScreen
 import com.tomastewater.deliveryfinance.presentation.goal.GoalDetailScreen
 
 @Composable
@@ -26,9 +30,8 @@ fun DeliveryFinanceNavigation() {
                 onNavigateToAddGoal = { navController.navigate(Screen.AddGoal.route) },
                 onNavigateToHistory = { navController.navigate(Screen.History.route) },
                 onNavigateToGoalHistory = { navController.navigate(Screen.GoalHistory.route) },
-                onNavigateToAddTransaction = { type ->
-                    navController.navigate(Screen.AddTransaction.createRoute(type))
-                }
+                onNavigateToAddTransaction = {navController.navigate(Screen.AddTransaction.route)},
+                onNavigateToCommitments = {navController.navigate(Screen.Commitments.route)}
             )
         }
 
@@ -65,11 +68,33 @@ fun DeliveryFinanceNavigation() {
         ) {
             GoalDetailScreen(
                 onNavigateBack = { navController.popBackStack() },
+
             )
         }
 
         composable(route = Screen.AddTransaction.route) { backStackEntry ->
             AddTransactionScreen(onNavigateBack = { navController.popBackStack() })
         }
+
+        composable(
+            route = Screen.Commitments.route,
+            enterTransition = {
+                slideInHorizontally(
+                    initialOffsetX = { fullWidth -> fullWidth },
+                    animationSpec = tween(300)
+                )
+            },
+            popExitTransition = {
+                slideOutHorizontally(
+                    targetOffsetX = { fullWidth -> fullWidth },
+                    animationSpec = tween(300)
+                )
+            }
+        ) {
+            CommitmentsScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
     }
 }
